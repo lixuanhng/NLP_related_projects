@@ -35,7 +35,7 @@ def EntRelToID(RDFs, ent_dict, rel_dict):
     return triplets_id
 
 
-def readChosenRDF(data_path):
+def readChosenRDF(data_path, drop_rel_type=None):
     """
     1、选定关系边的子集，这里不选择和疾病有关的节点数据和关系，也就是从数据集中直接删掉这部分的数据
     2、在每种关系下，统计每个实体出现的频率，和所属的类别（数字表示），由高到底排序
@@ -47,7 +47,11 @@ def readChosenRDF(data_path):
     rdf_count = 0
     for root, dirs, files in os.walk(data_path, topdown=False):
         for name in files:
-            if "cure" not in name:  # 不选择与疾病相关的三元组
+            if drop_rel_type != None and drop_rel_type in name:
+                # 如果有drop掉的关系类型，并且类型在文件名称中
+                pass
+            else:
+                # 不选择与【指定关系类型】相关的三元组
                 cur_df = pd.read_csv(os.path.join(root, name))  # 获取每一种dataframe
 
                 # 针对每种关系，统计每个词的出现频率
@@ -69,14 +73,16 @@ def readChosenRDF(data_path):
     return chosen_RDFs, ent_freq_dict, rdf_count
 
 
-def mainProcess():
-    ent_dict = defaultdict()
-    with open('./datasets/entity_index_dict.txt', 'r', encoding='utf-8') as ent_dict_file:
-        ent_dict_list = ent_dict_file.readlines()
-    for line in ent_dict_list:
-        pair = line.strip('\n').split('\t')
-        ent_dict[pair[0]] = pair[1]
-    pkl.dump(ent_dict, open('./datasets/ent_dict.pkl', 'wb'))
+def mainProcess(drop_rel_type=None):
+    # ent_dict = defaultdict()
+    # with open('./datasets/entity_index_dict.txt', 'r', encoding='utf-8') as ent_dict_file:
+    #     ent_dict_list = ent_dict_file.readlines()
+    # for line in ent_dict_list:
+    #     pair = line.strip('\n').split('\t')
+    #     ent_dict[pair[0]] = pair[1]
+    # pkl.dump(ent_dict, open('./datasets/ent_dict.pkl', 'wb'))
+    # 载入【诗词字典】
+    ent_dict = pkl.load(open('./datasets/ent_dict.pkl', 'rb'))
 
     # 载入【关系字典】
     rel_dict = pkl.load(open('./datasets/rel_dict.pkl', 'rb'))
@@ -84,7 +90,7 @@ def mainProcess():
     data_path = "./data"
 
     # 获取正样本数据，及词频排序
-    chosen_RDFs, ent_freq_dict, rdf_count = readChosenRDF(data_path)
+    chosen_RDFs, ent_freq_dict, rdf_count = readChosenRDF(data_path, drop_rel_type)
     # 保存正样本的数据
     chosen_RDFs.to_csv('./datasets/positive_triplets.csv', header=True, index=False)
     return chosen_RDFs, ent_freq_dict, rdf_count, ent_dict, rel_dict
@@ -132,6 +138,46 @@ def negativeSampling(chosen_RDFs, pos_sample_num, ent_freq_dict, rdf_count, num_
                                        'label': 0}, index=[1])
             RDFs_neg = RDFs_neg.append(new_df, ignore_index=True)
     return RDFs_neg, pos_sample_idxes
+
+
+def samplingUse(chosen_RDFs, sbj_cdts, obj_cdts, pos_start, pos_end, sbj_num, obj_num, chosen_rel_name):
+    """
+    根据选中的正样本，及正样本数据量，这类样本中头节点和尾节点所属于的词表
+    :param chosen_RDFs: 选中的正样本
+    :param pos_sample_num: 选择的正样本个数
+    :param ent_freq_dict: 关系-实体-词频 字典
+    :param num_neg_sample: 一个正样本对应的负样本个数
+    :param chosen_rel_name: 要产生的样本的关系类型9+
+    :return: 正负样本的集合，dataframe
+    """
+    print('开始负采样！')
+    sampled_RDFs = pd.DataFrame(columns=['source_name', 'relation', 'target_name', 'rdf_type', 'label'])
+    rel_name_zh = rel_en_zh[chosen_rel_name]
+    sbj_end = min(len(sbj_cdts), sbj_num)  # 选取【指定样本数量】和【提供备选实体数量】较小的那个
+    obj_end = min(len(obj_cdts), obj_num)
+    for i in range(pos_start, pos_end):
+        # 选取正样本中的一个三元组，将其添加到结果中
+        sampled_RDFs = sampled_RDFs.append(chosen_RDFs.iloc[i], ignore_index=True)
+        raw_sbj = chosen_RDFs.iloc[i]['source_name']
+        raw_obj = chosen_RDFs.iloc[i]['target_name']
+        for replace_entity in ['subject', 'object']:  # 选取头节点或者尾节点
+            if replace_entity == 'subject':
+                for j in range(sbj_end):
+                    new_df = pd.DataFrame({'source_name': sbj_cdts[j],  # 替换后的sbj实体
+                                           'relation': rel_name_zh,
+                                           'target_name': raw_obj,
+                                           'rdf_type': chosen_RDFs.iloc[i]['rdf_type'],
+                                           'label': 0}, index=[1])
+                    sampled_RDFs = sampled_RDFs.append(new_df, ignore_index=True)
+            else:
+                for j in range(obj_end):
+                    new_df = pd.DataFrame({'source_name': raw_sbj,
+                                           'relation': rel_name_zh,
+                                           'target_name': obj_cdts[j],  # 替换后的obj实体
+                                           'rdf_type': chosen_RDFs.iloc[j]['rdf_type'],
+                                           'label': 0}, index=[1])
+                    sampled_RDFs = sampled_RDFs.append(new_df, ignore_index=True)
+    return sampled_RDFs
 
 
 def combinePosNeg(chosen_RDFs, RDFs_neg, pos_sample_idxes, pos_sample_num, num_neg_sample):

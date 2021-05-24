@@ -14,3 +14,6 @@ Attention
 
 |--Multi-Head Self-Attention (text classification demo)（完成文本分类demo，包含位置编码）
 
+NER
+
+|--BiLSTM + CRF (完成实体识别模型，主要实体包括食物，营养素，人群等)

@@ -165,8 +165,6 @@ class Attention(layers.Layer):
         V_seq = tf.transpose(V_seq, perm=[0, 2, 1, 3])
 
         # 【Attention过程】计算内积，然后mask，然后softmax
-        # keras.backend.batch_dot(x, y, axes)，批量化的点积，axes表示目标维度的整数或列表
-        # 其功能相当于先将矩阵（针对某一位置）进行对位乘法，然后按照axes轴进行聚合加法（就是都加到一边，axes=0 表示行的维度不变，每一个列相加）
         A = tf.multiply(Q_seq, K_seq) / self.size_per_head ** 0.5  # 计算查询向量和键向量的积再对键向量维度开方
         A = tf.transpose(A, perm=[0, 3, 2, 1])  # A.shape = (batch_size, self.size_per_head, self.nb_head, seq_len)
         A = self.Mask(A, V_len, 'add')

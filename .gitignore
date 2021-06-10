@@ -1,0 +1,8 @@
+/__pycache__/*
+*.dat
+*.pyc
+*.log
+*.DS_Store
+/logs/*
+Dockerfile
+gunicorn.pid

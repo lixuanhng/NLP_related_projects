@@ -17,3 +17,11 @@ Attention
 NER
 
 |--BiLSTM + CRF (完成实体识别模型，主要实体包括食物，营养素，人群等)
+
+RE
+
+|--BIGRU + Attention （完成关系抽取模型）
+
+ESIM
+
+| -- BiGRU + local inference model（文本匹配模型）

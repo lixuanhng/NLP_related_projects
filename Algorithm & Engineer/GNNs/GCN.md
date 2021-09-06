@@ -16,7 +16,7 @@
 + 邻接矩阵
 + ![1](/Users/lixuanhong/Desktop/boohee_projects/base_KG/KGC/images/1.png)
 
-+ 说明：在标记图中，<font color=red>顶点1</font>与<font color=red>顶点2</font>和<font color=red>顶点5</font>连接，于是在邻接矩阵中，<font color=red>只有第二个和第五个位置的值为1</font>，其余位置为0，于是在度矩阵中第一个顶点的位置为11，且这个位置上的值为2，因为顶点1只与两个顶点有关
++ 说明：在标记图中，<font color=red>顶点1</font>与<font color=red>顶点2</font>和<font color=red>顶点5</font>连接，于是在邻接矩阵中，<font color=red>只有第二个和第五个位置的值为1</font>，其余位置为0，于是在度矩阵中第一个顶点的位置为1，且这个位置上的值为2，因为顶点1只与两个顶点有关
 + 不同于image数据，graph数据形状不规则，不具有平移不变性。对于GCN，其目标就是<font color=red>设计一个特征提取器，进而完成节点分类，边预测等任务，还可以得到每个节点的embedding</font>
 
 ### 图的特征提取思路一
@@ -63,7 +63,7 @@
 
 + 无论是思路一的 $ \widetilde A$ 还是思路二的 *L*，<font color=red>与CNN的卷积相似之处都是局部数据的聚合操作，只不过CNN 中卷积的局部连接数是固定的</font>。<font color=red>但是在Graph中每个节点的邻居个数都可能不同</font>，进行聚合操作后，对于度较大的节点，得到的特征比较大，度较少的节点得到的特征就比较小，因此还需要进行归一化的处理。
 + 算术平均：$L^{rw}=D^{-1}L$
-+ 几何平均：$L^{sym}=D^{-\frac {1}{2}}LD^{-\frac {1}{2}}$，几何平均值受极端值影响较小，因此是GCN中比较常用的归一化方法
++ 几何平均：$L^{sum}=D^{-\frac {1}{2}}LD^{-\frac {1}{2}}$​，几何平均值受极端值影响较小，因此是GCN中比较常用的归一化方法
 + 对于思路一：$agg(X)=L^{sym}X=D^{-\frac {1}{2}}LD^{-\frac {1}{2}}X=D^{-\frac {1}{2}}(D-A)D^{-\frac {1}{2}}X$
 
 + 对于思路二：$agg(X)=D^{-\frac {1}{2}}\widetilde AD^{-\frac {1}{2}}X=D^{-\frac {1}{2}}(A+I)D^{-\frac {1}{2}}X$

@@ -1,5 +1,13 @@
 Bert相关知识：
 
+### 论文解读：
+
++ bert 框架
+  + pre-train：无监督训练，针对不同的任务
+  + fine-tuned（下游任务）：模型初始化使用 pre-train 的 parameters，使用标注数据进行训练。每个任务有不同的fine-tuned模型，但是初始化都是一样的
+
+
+
 1. Bert整体模型架构
 
    + ![bert模型](/Users/lixuanhong/Desktop/Materials/NLP/bert模型.jpeg)
@@ -8,6 +16,7 @@ Bert相关知识：
      + 输入部分（3 部分向量相加）
        + input = token embedding + segment embedding + position embedding
        + token embedding，使用 word2vec or random initialization
+         + <font color=red> 重点 </font>bert输入是subword，bert自己自带一个词表，输入subword在词表中的id，然后将bert输出和你自己模型的随机初始化词向量拼接，
        + segment embedding，前面的句子中每个词都用0来表示，后面的句子中每个词都用1来表示
        + position embedding，采用随机初始化，让模型去学习这个位置的表示（不同的是，在 transformer中使用三角函数去表征）
      + 注意力机制

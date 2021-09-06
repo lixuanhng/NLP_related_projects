@@ -67,6 +67,7 @@
         + Batch normalization: <font color=red>针对一个batch中的样本在同一特征维度进行处理</font>
         + （有待商榷）优点1：可以解决内部协变量偏移
         + （有待商榷）优点2：缓解了梯度饱和问题，加快收敛
+          + 我们知道sigmoid激活函数和tanh激活函数存在梯度饱和的区域，其原因是激活函数的输入值过大或者过小，其得到的激活函数的梯度值会非常接近于0，使得网络的收敛速度减慢。传统的方法是使用不存在梯度饱和区域的激活函数，例如ReLU等。BN也可以缓解梯度饱和的问题，它的策略是在调用激活函数之前将 ![[公式]](https://www.zhihu.com/equation?tex=WX%2Bb) 的值归一化到梯度值比较大的区域。假设激活函数为 ![[公式]](https://www.zhihu.com/equation?tex=g) ，BN应在 ![[公式]](https://www.zhihu.com/equation?tex=g) 之前使用
         + 缺点1：小样本的均值和方差，来模拟所有样本的均值和方法，如果batch_size比较小，那效果一定不好
         + （有待商榷）缺点2：在RNN中效果不好，RNN输入是动态的，长度不同的输入文本不能保证具有同一维度的特征，如果有，可能也是小样本
       + <font color=red>feature scaling</font>
@@ -86,8 +87,106 @@
   + 前一个encoder组中最后一个encoder的输出，和每一个（6个）decoder进行交互
   + 交互方式为：encoder产生的是k和v矩阵，decoder产生的是q矩阵，然后就是做attention
 
+### 实践
+
++ Transformer的tensorflow实现：
+  + https://github.com/terrifyzhao/transformer
++ tensorflow库下面的包
+  + tensor2tensor
++ 知乎上使用tf2.0手动实现transformer
+  + https://zhuanlan.zhihu.com/p/64881836
 
 
-Transformer的tensorflow实现：
 
-https://github.com/terrifyzhao/transformer
+#### Batch Normalization
+
++ 作用：
+
+  + 网络更加稳定
+  + 能够起到一定正则化的作用
+
++ 小批量随机梯度下降，其缺点是对参数比较敏感，较大的学习率和不适合的初始化值均有可能导致训练过程中发生梯度消失，或梯度爆炸。BN用来解决这个问题
+
++ 作者认为因为存在内部协变量偏移（ICS），模型需要学习在训练过程中会不断变化的隐层输入分布。
+
++ <font color=red>提出BN的动机是企图在训练过程中将每一层的隐层节点的输入分布固定下来，这样就可以避免ICS通过一定的规范化手段，把每层神经网络输入值的分布强行拉回到接近均值为0方差为1的标准正态分布</font>
+
++ 缓解梯度饱和
+
+  + 缓解使用因存在梯度饱和区域的激活函数sigmoid或者tanh函数，使用BN的方法就是将输入通过激活函数之前，先通过BN
+
++ 训练过程
+
+  + 以一个batch为单位，假设一个批量有 m 样本 $B = {x_1, x_2, ...,x_m}$ ，每个样本有 d 个特征，那么这个批次的每个样本第 k 个特征的归一化后的值为
+
+    $\hat x = \frac{x^{(k)}-E[x^{(k)}]}{\sqrt Var[x^{(k)}]}$ ，其中 E 和 Var 分别表示第 k 个特征在这个批次中所有的样本的均值和方差。
+
+  + 这种表示会对模型的收敛有帮助，但是也可能破坏已经学习到的特征。为了解决这个问题，==BN添加了两个可以学习的变量 $\beta$ 和 $\gamma$ 用于控制网络能够表达直接映射，也就是能够还原BN之前学习到的特征==。
+
+    $y^{(k)} = \gamma^{(k)} \hat x^{(k)} + \beta^{(k)}$
+
+  + <font color=red>BN可以看作是一个以 $\beta$ 和 $\gamma$ 为参数的，从 $x_{1...m}$ 到 $y_{1...m}$ 的一个映射</font>
+
+  + 对 x 进行求导，$\frac {\partial l}{\partial \gamma} = \sum_{i=1}^m \frac{\partial l}{\partial y_i} \hat x_i$， $\frac{\partial l}{\partial \beta} = \sum_{i=1}^m \frac{\partial l}{\partial y_i}$
+
+  + BN是处处可导的，因此可以直接作为层的形式加入到神经网络中。
+
++ BN应用于卷积网络
+
+  + 卷积网络和MLP的不同点是卷积网络中每个样本的隐层节点的输出是三维（宽度，高度，维度）的
+  + 假设一个批量有 m 个样本，Feature Map的尺寸是 p * q ，通道数是 d。在卷积网络的中，BN的操作是以Feature Map为单位的，因此一个BN要统计的数据个数为 m * p * q ，每个Feature Map使用一组 $\beta$ 和 $\gamma$ 。
+
++ BN效果好的真正原因
+
+  + 平滑了损失平面，收敛较快
+  + 残差网络也能起到这个作用
+
++ 几个场景下需要谨慎使用
+
+  + 受制于硬件限制，每个Batch的尺寸比较小，这时候谨慎使用BN；
+  + 在类似于RNN的动态网络中谨慎使用BN；
+  + 训练数据集和测试数据集方差较大的时候。
+
+
+
+#### Layer Normalization
+
++ 作用
+
+  + 解决BN中出现的RNN动态网络和小batch时的效果不好的问题
+  + BN 取不同样本的同一个通道的特征做归一化；LN则是如左侧所示，它取的是同一个样本的不同通道做归一化。
+  + 文本信息，一个词的语义表达应该到其所在的句子中获取，所以特征上的norm（BN）不合适
+
++ BN效果不好的原因
+
+  + 小样本的均值和方差便不能反映全局的统计分布息，所以基于少量样本的BN的效果会变得很差。
+  + RNN网络中各个样本的长度都是不同的，当统计到比较靠后的时间片时，只有一个样本还有数据，基于这个样本的统计信息不能反映全局分布。
+
++ MLP中的LN
+
+  + 独立于batch size，根据样本特征做归一化
+
+  + 设 H 是一层中隐层节点的数量，其中 $a_i$ 为该层中每一个节点，$l$ 是MLP的层数，我们可以计算LN的归一化统计量 $\mu$ 和 $\sigma$
+
+    $\mu^l = \frac{1}{H} \sum_{i=1}^H a_i^l$， $\sigma^l = \sqrt{\frac{1}{H} \sum_{i=1}^H(a_i^l-\mu^l)^2}$
+
+    上面统计量的计算只取决于隐层节点的数量，所以只要隐层节点的数量足够多，我们就能保证LN的归一化统计量足够具有代表性
+
+    归一化后：$\hat a^l = \frac{a^l-\mu^l}{\sqrt{(\sigma^l)^2+\epsilon}}$
+
+  + <font color=red>LN中我们也需要一组参数来保证归一化操作不会破坏之前的信息，在LN中这组参数叫做增益（gain）g 和偏置（bias）b （等同于BN中 $\beta$ 和 $\gamma$）。</font>假设激活函数为 f ，最终LN的输出为：
+
+    $h^l = f(g^l  * \hat a^l + b^l)$
+
+    忽略参数 $l$，得到：$h = f(\frac{g}{\sqrt{\sigma^2+\epsilon}}*(a - \mu) + b)$
+
++ RNN中的LN
+
+  + 可以表示为：$a^t = W_{hh}h^{t-1} + W_{xh}X^t$
+
+  + 归一化过程是完全一样的表达，公式见上面
+
++ 同样能够起到平滑损失平面的作用
+
+
+

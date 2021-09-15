@@ -17,8 +17,7 @@ import os
 
 # os.path.abspath(__file__)  获取当前执行脚本的完成路径，也就是说只有当前脚本执行时，该语句才会执行
 # pathlib.Path.parent  获取当前path路径的上级路径
-basedir1 = str(pathlib.Path(os.path.abspath(__file__)).parent.parent.parent.parent)  # 路径为 /home/lixh/works/text
-basedir2 = str(pathlib.Path(os.path.abspath(__file__)).parent.parent.parent)  # 路径为 /home/lixh/works/text/chatbot_project/Chatbot_Retrieval
+basedir1 = str(pathlib.Path(os.path.abspath(__file__)).parent)  # 路径为 /home/lixh/works/text
 # print(basedir2)
 
 
@@ -26,19 +25,18 @@ class Config():
 
     def __init__(self):
         # bert config 文件
-        self.bert_config_file = '/home/lixh/works/text/bert_dir/bert_config.json'
+        self.bert_config_file = os.path.join(basedir1, 'chinese-bert/bert_config.json')
         # bert vocab 文件
-        self.vocab_file = '/home/lixh/works/text/bert_dir/vocab.txt'
+        self.vocab_file = os.path.join(basedir1, 'chinese-bert/vocab.txt')
         # bert 模型使用的数据路径
-        self.data_dir = os.path.join(basedir2, 'data/bert_sim/')
+        self.data_dir = os.path.join(basedir1, 'data')
         # 模型输出路径
-        self.output_dir = basedir2 + '/Chatbot_Retrieval_model/Bert_sim/results'
-        self.predict_file = basedir2 + '/data/bert_sim/dev.txt'
-        self.test_file = basedir2 + '/data/bert_sim/test.txt'
+        self.output_dir = os.path.join(basedir1, 'results')
+        self.predict_file = os.path.join(basedir1, 'data/dev.csv')
+        self.test_file = os.path.join(basedir1, 'data/test.csv')
         # 预训练模型地址
-        self.init_checkpoint = '/home/lixh/works/text/bert_dir/bert_model.ckpt'
-
-        self.train_checkpoint = basedir2 + '/Chatbot_Retrieval_model/Bert_sim/results'
+        self.init_checkpoint = os.path.join(basedir1, 'chinese-bert/bert_model.ckpt')
+        self.train_checkpoint = os.path.join(basedir1, 'results')
 
         self.do_lower_case = True
         self.verbose_logging = False
@@ -58,8 +56,8 @@ class Config():
         self.max_query_length = 64
 
 
-        self.do_train = False
-        self.do_predict = True
+        self.do_train = True
+        self.do_predict = False
         self.batch_size = 20
         self.predict_batch_size = 8
         self.learning_rate = 5e-5

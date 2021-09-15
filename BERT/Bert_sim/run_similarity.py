@@ -17,16 +17,16 @@ from queue import Queue
 from threading import Thread
 
 import sys
-sys.path.append('../../../../')  # 路径表示为 /home/lixh/works/text
+sys.path.append('../')  # 路径表示为 /home/scv4056/run/lixh/NLP/bert-ner
 
 import pandas as pd
 import tensorflow as tf
 import collections
-from chatbot_project.Chatbot_Retrieval.Chatbot_Retrieval_model.Bert_sim.config import Config
+from bert_model.config import Config
 
-from bert_dir.bert.bert import modeling
-from bert_dir.bert.bert import tokenization
-from bert_dir.bert.bert import optimization
+from bert_model import modeling
+from bert_model import tokenization
+from bert_model import optimization
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3'
 cf = Config()
